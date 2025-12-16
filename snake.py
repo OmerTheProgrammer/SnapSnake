@@ -55,7 +55,7 @@ class Apple(Segment):
 #מחלקה קוד נחש
 class Snake(object):
     _STARTING_SEGMENTS = 10
-#ממקם נחש
+    #ממקם נחש
     def __init__(self, base_x, base_y):
         self._segments = []
         self._sprites = pygame.sprite.Group()
@@ -68,16 +68,21 @@ class Snake(object):
             self._sprites.add(segment)
         self._x_change = Segment._WIDTH + Segment._MARGIN
         self._y_change = 0
-#תנועה
+    #תנועה
     def move(self, x_change, y_change):
         self._x_change = x_change
         self._y_change = y_change
 
     def update(self):
         #תנועת פיקסלים
-        # Removing last segment
-        old_segment = self._segments.pop()
-        self._sprites.remove(old_segment)
+
+        # Removing last segment if we don't grow -> delete
+        if not self.grow_next_frame:
+            old_segment = self._segments.pop()
+            self._sprites.remove(old_segment)
+        else:
+            #grow -> not delete, מאפסים לפעם הבאה
+            self.grow_next_frame = False
 
         # Adding a new segment
         x = self._segments[0].rect.x + self._x_change
@@ -161,8 +166,10 @@ class SnakeGame(object):
         self._snake.update()
         #מזמן תפוחים
         if self._apple is None:
-            self._apple = Apple(random.randint(0, self._SCREEN_WIDTH - Segment._WIDTH),
-            random.randint(0, self._SCREEN_HEIGHT - Segment._HEIGHT))
+            self._apple = Apple(
+                random.randint(0, self._SCREEN_WIDTH - Segment._WIDTH),
+                random.randint(0, self._SCREEN_HEIGHT - Segment._HEIGHT)
+            )
 
         # Check collision between our Snake and the apple
         if self._snake.has_collided_with(self._apple):
@@ -170,7 +177,7 @@ class SnakeGame(object):
             ate_sound.play()
             self._score += 1
             self._apple = None
-            self._snake.add_back_segment()
+            self._snake.grow_next_frame = True
             time.sleep(0.5)
 
         # Check of game is over by self crash
