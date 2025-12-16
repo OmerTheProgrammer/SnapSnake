@@ -138,16 +138,22 @@ class SnakeGame(object):
         self._snake = Snake(250, 30)
         self._apple = None
 
+    def _handle_game_over(self, reason):
+        #מטפל בלוגיקת סיום המשחק, כולל השמעת צליל וקביעת טיימר.
+        if self._background_channel:
+             self._background_channel.stop() # עצירה מלאה של הרקע
+             if self._death_sound:
+                 self._effects_channel.play(self._death_sound) #הפעלת צליל מוות
+        #עיכוב של 2.1 שניות
+        self._game_over_time = pygame.time.get_ticks() + 2100
+        self._game_over_reason = reason
+
     #קלט מהמשתמש
     def _process_input(self):
         for event in pygame.event.get():
             #clicked on x?
             if event.type == pygame.QUIT:
-                self._background_channel.stop() # עצירה מלאה של הרקע
-                self._effects_channel.play(self._death_sound) #הפעלת צליל מוות
-                #עיכוב של 2.1 שניות
-                self._game_over_time = pygame.time.get_ticks() + 2100
-                self._game_over_reason = "Reason: Manual exit, clicked the X app button."
+                self._handle_game_over("Reason: Manual exit, clicked the X app button.")
                 return
             #else, is any key prassed?
             if event.type == pygame.KEYDOWN:
@@ -161,10 +167,7 @@ class SnakeGame(object):
                 if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                     self._snake.move(0, moving_dictence)
                 if event.key == pygame.K_q:
-                    self._background_channel.stop() # עצירה מלאה של הרקע
-                    self._effects_channel.play(self._death_sound) #הפעלת צליל מוות
-                    self._game_over_time = pygame.time.get_ticks() + 2100
-                    self._game_over_reason = "Reason: Manual exit, clicked the Q button."
+                    self._handle_game_over("Reason: Manual exit, clicked the Q button.")
                     return
                 if event.key == pygame.K_c:
                     main()
@@ -177,6 +180,24 @@ class SnakeGame(object):
                 return
             else:
                 return
+            
+        #calc out of bounds and collisions:
+        # 1. Get current head position and intended movement
+        current_head = self._snake._segments[0]
+        x_change = self._snake._x_change
+        y_change = self._snake._y_change
+        
+        # 2. Calculate potential new head position
+        potential_x = current_head.rect.x + x_change
+        potential_y = current_head.rect.y + y_change
+
+        # 3. Check if the potential position is out of bounds
+        width = Segment._WIDTH
+        height = Segment._HEIGHT
+        
+        if potential_x < 0 or potential_y < 0 or potential_x + width > self._SCREEN_WIDTH or potential_y + height > self._SCREEN_HEIGHT:
+            self._handle_game_over("Reason: Hit an edge.")
+            return # Game over, stop update loop immediately
         
         self._snake.update()
         #מזמן תפוחים
@@ -202,23 +223,8 @@ class SnakeGame(object):
         head = self._snake._segments[0] #בודק מהראש החדש
         for segment in self._snake._segments[1:]:  # לולאה על כל המקטעים חוץ מהראש
             if head.rect.x == segment.rect.x and head.rect.y == segment.rect.y: #יש מפגש
-                #stops background music
-                self._background_channel.pause()
-                #runs the death sound
-                self._effects_channel.play(self._death_sound)
-                self._game_over_time = pygame.time.get_ticks() + 2100
-                self._game_over_reason = "Reason: Hit itself."
+                self._handle_game_over("Reason: Hit itself.")
                 return
-
-        # Check of game is over by bounds crash
-        if self._snake.is_out_of_bounds(0, 0, self._SCREEN_WIDTH, self._SCREEN_HEIGHT):
-            #stops background music
-            self._background_channel.pause()
-            #runs the death sound
-            self._effects_channel.play(self._death_sound)
-            self._game_over_time = pygame.time.get_ticks() + 2100
-            self._game_over_reason = "Reason: Hit an edge."
-            return
 
         #אם הצלילים האחרים כבויים, להפעיל את הרקע
         if not self._effects_channel.get_busy():
