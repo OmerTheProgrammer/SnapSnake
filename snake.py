@@ -129,6 +129,7 @@ class SnakeGame(object):
         self._ate_sound = pygame.mixer.Sound('Sounds\\ate.mpeg')
 
         self._game_over_time = None
+        self._game_over_reason = None
 
         self._score = 0
         self._font = pygame.font.SysFont('Consolas', 18)
@@ -142,14 +143,12 @@ class SnakeGame(object):
         for event in pygame.event.get():
             #clicked on x?
             if event.type == pygame.QUIT:
-                self._screen.blit(self._font.render("game over!", False, GREEN), (200, 150))
-                self._screen.blit(self._font.render("clicked on the x.", False, GREEN), (200, 200))
-                pygame.display.flip()
                 self._background_channel.stop() # עצירה מלאה של הרקע
                 self._effects_channel.play(self._death_sound) #הפעלת צליל מוות
                 #עיכוב של 2.1 שניות
                 self._game_over_time = pygame.time.get_ticks() + 2100
-                break
+                self._game_over_reason = "Reason: Manual exit, clicked the X app button."
+                return
             #else, is any key prassed?
             if event.type == pygame.KEYDOWN:
                 moving_dictence = Segment._WIDTH + Segment._MARGIN
@@ -162,12 +161,11 @@ class SnakeGame(object):
                 if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                     self._snake.move(0, moving_dictence)
                 if event.key == pygame.K_q:
-                    self._screen.blit(self._font.render("game over!", False, GREEN), (200, 150))
-                    self._screen.blit(self._font.render("clicked on q.", False, GREEN), (200, 200))
-                    pygame.display.flip()
                     self._background_channel.stop() # עצירה מלאה של הרקע
                     self._effects_channel.play(self._death_sound) #הפעלת צליל מוות
                     self._game_over_time = pygame.time.get_ticks() + 2100
+                    self._game_over_reason = "Reason: Manual exit, clicked the Q button."
+                    return
                 if event.key == pygame.K_c:
                     main()
 
@@ -204,30 +202,27 @@ class SnakeGame(object):
         head = self._snake._segments[0] #בודק מהראש החדש
         for segment in self._snake._segments[1:]:  # לולאה על כל המקטעים חוץ מהראש
             if head.rect.x == segment.rect.x and head.rect.y == segment.rect.y: #יש מפגש
-                # ... game over logic ...
-                self._screen.blit(self._font.render("game over!", False, GREEN), (200, 150)) #כותב טקסט למשתמש
-                self._screen.blit(self._font.render("hit itself.", False, GREEN), (200, 200)) #
-                pygame.display.flip()
                 #stops background music
                 self._background_channel.pause()
                 #runs the death sound
                 self._effects_channel.play(self._death_sound)
                 self._game_over_time = pygame.time.get_ticks() + 2100
-                break
+                self._game_over_reason = "Reason: Hit itself."
+                return
 
         # Check of game is over by bounds crash
         if self._snake.is_out_of_bounds(0, 0, self._SCREEN_WIDTH, self._SCREEN_HEIGHT):
-            self._screen.blit(self._font.render("game over!", False, GREEN), (200, 150))
-            self._screen.blit(self._font.render("hit an adge.", False, GREEN), (200, 200))
-            pygame.display.flip()
             #stops background music
             self._background_channel.pause()
             #runs the death sound
             self._effects_channel.play(self._death_sound)
             self._game_over_time = pygame.time.get_ticks() + 2100
+            self._game_over_reason = "Reason: Hit an edge."
+            return
 
-        #אם הצלילים האחרים סיימנו נפעיל מוזיקת רקע וגם המוזיקת רקע כבויה
-        if not self._effects_channel.get_busy() and self._background_channel.get_busy() == False:
+        #אם הצלילים האחרים כבויים, להפעיל את הרקע
+        if not self._effects_channel.get_busy():
+            #הפעלת רקע
             self._background_channel.unpause()
 
     #להריץ מסך
@@ -237,6 +232,11 @@ class SnakeGame(object):
 
         if self._apple is not None:
             self._screen.blit(self._apple.image, (self._apple.rect.x, self._apple.rect.y))
+
+        if self._game_over_time is not None: # משחק נגמר
+            self._screen.blit(self._font.render("GAME OVER!", False, GREEN), (200, 150))
+            self._screen.blit(self._font.render(self._game_over_reason, False, GREEN), (200, 180))
+            self._screen.blit(self._font.render("Click 'c' to restart.", False, GREEN), (200, 210))
 
         texture_surface = self._font.render('{0}'.format(self._score), False, GREEN)
         self._screen.blit(texture_surface, (20, 20))
