@@ -159,7 +159,7 @@ class SnakeGame(object):
 
     def _update(self):
         self._snake.update()
-#מזמן תפוחים
+        #מזמן תפוחים
         if self._apple is None:
             self._apple = Apple(random.randint(0, self._SCREEN_WIDTH - Segment._WIDTH),
             random.randint(0, self._SCREEN_HEIGHT - Segment._HEIGHT))
@@ -173,19 +173,21 @@ class SnakeGame(object):
             self._snake.add_back_segment()
             time.sleep(0.5)
 
-# Check of game is over by self crash
-        for segment in self._snake._segments[:-1]:
-            if segment.x == self._snake._segments[-1].x and segment.y == self._snake._segments[-1].y:
-                self._screen.blit(self._font.render("game over!", False, GREEN), (200, 150))
-                self._screen.blit(self._font.render("hit itself.", False, GREEN), (200, 200))
+        # Check of game is over by self crash
+        head = self._snake._segments[0] #בודק מהראש החדש
+        for segment in self._snake._segments[1:]:  # לולאה על כל המקטעים חוץ מהראש
+            if head.rect.x == segment.rect.x and head.rect.y == segment.rect.y: #יש מפגש
+                # ... game over logic ...
+                self._screen.blit(self._font.render("game over!", False, GREEN), (200, 150)) #כותב טקסט למשתמש
+                self._screen.blit(self._font.render("hit itself.", False, GREEN), (200, 200)) #
                 pygame.display.flip()
-                game_sound.stop()
-                death_sound.play()
+                game_sound.stop() #עוצר את המוזיקה
+                death_sound.play() #מפעיל צליל כישלון
                 time.sleep(2.1)
                 self._done = True
                 break
 
-# Check of game is over by bounds crash
+        # Check of game is over by bounds crash
         if self._snake.is_out_of_bounds(0, 0, self._SCREEN_WIDTH, self._SCREEN_HEIGHT):
             self._screen.blit(self._font.render("game over!", False, GREEN), (200, 150))
             self._screen.blit(self._font.render("hit an adge.", False, GREEN), (200, 200))
@@ -194,7 +196,7 @@ class SnakeGame(object):
             death_sound.play()
             time.sleep(2.1)
             self._done = True
-#להריץ מסך
+    #להריץ מסך
     def _render(self):
         self._screen.fill(BLACK)
         self._snake.draw(self._screen)
@@ -206,9 +208,9 @@ class SnakeGame(object):
         self._screen.blit(texture_surface, (20, 20))
 
         pygame.display.flip()
-#מציירת
+    #מציירת
     def run(self):
-        game_sound.play(loops = -1)
+        game_sound.play(loops = 1)
         while not self._done:
             self._process_input()
             self._update()
@@ -216,7 +218,7 @@ class SnakeGame(object):
             #מגביל fps
             self._clock.tick(5)
         
-#סוגר  את המשחק
+    #סוגר  את המשחק
     def quit(self):
         pygame.quit()
 #הרצה של המשחק
